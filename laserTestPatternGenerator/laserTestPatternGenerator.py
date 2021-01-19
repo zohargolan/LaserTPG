@@ -16,6 +16,7 @@ class laserTestPatternGenerator:
     ERROR_MAX_FEED                          = 8
     ERROR_RANGE_FEED                        = 9
     ERROR_STEPS_FEED                        = 10
+    ERROR_LINE_RESOLUTION                   = 11
 
     def __init__(self,mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed, sampleLineResoultion = 10):
         self.mode = mode.lower()
@@ -78,6 +79,10 @@ class laserTestPatternGenerator:
         
         if self.maxFeed < self.minFeed:
             return self.ERROR_RANGE_FEED
+
+        #check sampleLineResolution parameter
+        if self.sampleLineResolution < 0 or self.sampleLineResolution > 40:
+            return self.ERROR_LINE_RESOLUTION
 
         return self.OK
 
