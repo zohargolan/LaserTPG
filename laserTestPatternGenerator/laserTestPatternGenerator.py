@@ -202,7 +202,7 @@ class laserTestPatternGenerator:
 def printHelp():
     print()
     print()
-    print("laserTestPatternGenerator Cut/Engrave lineResolution minPower maxPower stepsPower minFeed maxFeed stepsFeed")
+    print("laserTestPatternGenerator Cut/Engrave minPower maxPower stepsPower minFeed maxFeed stepsFeed")
     print()
     
 if __name__ == "__main__":
