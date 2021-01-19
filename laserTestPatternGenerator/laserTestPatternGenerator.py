@@ -17,7 +17,7 @@ class laserTestPatternGenerator:
     ERROR_RANGE_FEED                        = 9
     ERROR_STEPS_FEED                        = 10
 
-    def __init__(self,mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed):
+    def __init__(self,mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed, sampleLineResoultion = 10):
         self.mode = mode.lower()
         self.minPower = minPower
         self.maxPower = maxPower
@@ -25,13 +25,14 @@ class laserTestPatternGenerator:
         self.minFeed = minFeed
         self.maxFeed = maxFeed
         self.stepsFeed = stepsFeed     
+        self.sampleLineResolution = sampleLineResoultion
 
         #config default sample size and resolution
         self.sampleWidth = 5
         self.sampleHorizontalSpace = 5
         self.sampleHeight = 5
         self.sampleVerticalSpace = 5
-        self.sampleLineResolution = 10
+        
 
         #config font sizes
         self.topHeaderFontWidth = 3
@@ -225,15 +226,19 @@ if __name__ == "__main__":
         minFeed = int(sys.argv[5])
         maxFeed = int(sys.argv[6])
         stepsFeed = int(sys.argv[7])
+        if len(sys.argv) == 9:
+            sampleLineResolution = int(sys.argv[8])
     except:
         print("Error in command line parameter!")
         printHelp()
         sys.exit()
         
     #instantiate laserTestPatternGenerator class
-    gtpg = laserTestPatternGenerator(mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed)
-    
-    gtpg.setSampleConfiguration(5,5,5,5,10) #optional command to change the default configuration of the sample
+    if len(sys.argv) == 9:
+        gtpg = laserTestPatternGenerator(mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed, sampleLineResolution)
+    else:
+        gtpg = laserTestPatternGenerator(mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed)
+    #gtpg.setSampleConfiguration(5,5,5,5,10) #optional command to change the default configuration of the sample
     gtpg.buildTestPattern()
 
 
