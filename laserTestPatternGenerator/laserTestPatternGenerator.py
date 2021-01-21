@@ -7,7 +7,7 @@ class laserTestPatternGenerator:
     #Error code definition
     OK                                      = 0
     ERROR_MODE                              = 1
-    ERROR_LINE_RESOLUION                    = 2
+    ERROR_LINE_RESOLUION_CUT_POWER                    = 2
     ERROR_MIN_POWER                         = 3
     ERROR_MAX_POWER                         = 4
     ERROR_STEPS_POWER                       = 5
@@ -18,15 +18,15 @@ class laserTestPatternGenerator:
     ERROR_STEPS_FEED                        = 10
     ERROR_LINE_RESOLUTION                   = 11
 
-    def __init__(self,mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed, sampleLineResoultion = 10):
+    def __init__(self,mode,minPowerPasses, maxPowerPasses, stepsPowerPasses, minFeed, maxFeed, stepsFeed, sampleLineResoultion = 10):
         self.mode = mode.lower()
-        self.minPower = minPower
-        self.maxPower = maxPower
-        self.stepsPower = stepsPower
+        self.minPowerPasses = minPowerPasses
+        self.maxPowerPasses = maxPowerPasses
+        self.stepsPowerPasses = stepsPowerPasses
         self.minFeed = minFeed
         self.maxFeed = maxFeed
         self.stepsFeed = stepsFeed     
-        self.sampleLineResolution = sampleLineResoultion
+        self.LineResolutionCutPower = sampleLineResoultion
 
         #config default sample size and resolution
         self.sampleWidth = 5
@@ -51,20 +51,24 @@ class laserTestPatternGenerator:
             return self.ERROR_MODE
 
         #check lineResolution
-        if self.sampleLineResolution < 0 or self.sampleLineResolution > 40:
-            return self.ERROR_LINE_RESOLUION
+        if self.mode == "cut":
+            if self.LineResolutionCutPower < 0 or self.LineResolutionCutPower > 255:
+                return self.ERROR_LINE_RESOLUION_CUT_POWER
+        else:
+            if self.LineResolutionCutPower < 0 or self.LineResolutionCutPower > 40:
+                return self.ERROR_LINE_RESOLUION_CUT_POWER
 
         #check power parameters
-        if self.minPower < 0 or self.minPower > 255:
+        if self.minPowerPasses < 0 or self.minPowerPasses > 255:
             return self.ERROR_MIN_POWER
             
-        if self.maxPower < 0 or self.maxPower > 255:
+        if self.maxPowerPasses < 0 or self.maxPowerPasses > 255:
             return self.ERROR_MAX_POWER
         
-        if self.stepsPower < 0 or self.stepsPower > 10:
+        if self.stepsPowerPasses < 0 or self.stepsPowerPasses > 10:
             return self.ERROR_STEPS_POWER
         
-        if self.maxPower < self.minPower:
+        if self.maxPowerPasses < self.minPowerPasses:
             return self.ERROR_RANGE_POWER
 
         #check feed parameters
@@ -80,18 +84,14 @@ class laserTestPatternGenerator:
         if self.maxFeed < self.minFeed:
             return self.ERROR_RANGE_FEED
 
-        #check sampleLineResolution parameter
-        if self.sampleLineResolution < 0 or self.sampleLineResolution > 40:
-            return self.ERROR_LINE_RESOLUTION
-
         return self.OK
 
-    def setSampleConfiguration(self,width,horizontalSpace,height,verticalSpace,sampleLineResolution):
+    def setSampleConfiguration(self,width,horizontalSpace,height,verticalSpace,LineResolutionCutPower):
         self.sampleWidth = width
         self.sampleHorizontalSpace = horizontalSpace
         self.sampleHeight = height
         self.sampleVerHorizontalSpace = verticalSpace
-        self.sampleLineResolution = sampleLineResolution
+        self.LineResolutionCutPower = LineResolutionCutPower
     
     def startGcode(self):
         #generate the GCODE file header
@@ -114,7 +114,7 @@ class laserTestPatternGenerator:
 
         #calculate test pattern dimentions
         self.tpgWidth = self.stepsFeed*(self.sampleWidth + self.sampleHorizontalSpace)
-        self.tpgHeight = self.stepsPower*(self.sampleHeight + self.sampleVerticalSpace)
+        self.tpgHeight = self.stepsPowerPasses*(self.sampleHeight + self.sampleVerticalSpace)
         
         #write the  top header
         self.gtw.fontConfig(self.topHeaderFontWidth, self.topHeaderFontHeight,space = self.topHeaderFontWidth / 2, feedRate = 1000, power = 150)
@@ -127,7 +127,10 @@ class laserTestPatternGenerator:
         self.gtw.printGcode(30,self.tpgHeight + self.powerFeedValuesFontWidth * 4 * 1.5 + 12, self.gtw.ORIENTATION_HORIZONTAL,"FEED [MM/MIN]")
 
         #write the power header
-        self.gtw.printGcode(self.powerFeedHeaderFontHeight + 10, 10, self.gtw.ORIENTATION_VERTICAL,"POWER")
+        if(self.mode == "cut"):
+            self.gtw.printGcode(self.powerFeedHeaderFontHeight + 10, 10, self.gtw.ORIENTATION_VERTICAL,"PASSES [P=" + str(self.LineResolutionCutPower)+"]")
+        else:
+            self.gtw.printGcode(self.powerFeedHeaderFontHeight + 10, 10, self.gtw.ORIENTATION_VERTICAL,"POWER")
 
         #config font for power and feed values
         self.gtw.fontConfig(self.powerFeedValuesFontWidth, self.powerFeedValuesFontHeight,self.powerFeedValuesFontWidth/2, feedRate = 1000, power = 150)
@@ -146,21 +149,22 @@ class laserTestPatternGenerator:
             self.gtw.printGcode(x, y, self.gtw.ORIENTATION_HORIZONTAL,str(round(power,2)))
             y = y - self.sampleHeight - self.sampleVerticalSpace
 
-    def generateTestBox(self, mode, x, y, feed, power):
+    def generateTestBox(self, mode, x, y, feed, powerPasses):
         print("G0 X"+str(x)+" Y"+str(y))
         if self.mode == "cut":
-            print(";cut box x=" + str(x) + " y=" + str(y) + " feed="+str(feed) + " power=" + str(power))    
-            print("G1 S" + str(power) + " F" + str(feed) + " X" + str(x)+" Y" + str(y + self.sampleHeight))
-            print("G1 S" + str(power) + " F" + str(feed) + " X" + str(x + self.sampleWidth) + " Y" + str(y + self.sampleHeight))
-            print("G1 S" + str(power) + " F" + str(feed) + " X" + str(x + self.sampleWidth) + " Y" + str(y))
-            print("G1 S" + str(power) + " F" + str(feed) + " X" + str(x) + " Y" + str(y))
+            print(";cut box x=" + str(x) + " y=" + str(y) + " feed="+str(feed) + " power= " + str(LineResolutionCutPower) + "passes= " + str(powerPasses))    
+            for i in range(powerPasses):
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x)+" Y" + str(y + self.sampleHeight))
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x + self.sampleWidth) + " Y" + str(y + self.sampleHeight))
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x + self.sampleWidth) + " Y" + str(y))
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x) + " Y" + str(y))
 
         else:
-            print(";engrave box x=" + str(x) + " y=" + str(y) + " feed="+str(feed) + " power=" + str(power))
+            print(";engrave box x=" + str(x) + " y=" + str(y) + " feed="+str(feed) + " power=" + str(powerPasses))
             currentY = y
-            for verticalStep in range(self.sampleHeight * self.sampleLineResolution):
-                print("G1 S" + str(power) + " F" + str(feed) + " X" + str(x + self.sampleWidth)+" Y" + str(currentY))
-                currentY = y + verticalStep / self.sampleLineResolution
+            for verticalStep in range(self.sampleHeight * self.LineResolutionCutPower):
+                print("G1 S" + str(powerPasses) + " F" + str(feed) + " X" + str(x + self.sampleWidth)+" Y" + str(currentY))
+                currentY = y + verticalStep / self.LineResolutionCutPower
                 print("G0 X" + str(x)+" Y" + str(currentY))
 
     def fillupTestBoxes(self):
@@ -180,9 +184,9 @@ class laserTestPatternGenerator:
 
         #prepare the power setpoints list
         self.powerSetpoints = []
-        for powerStep in range(self.stepsPower - 1):
-            self.powerSetpoints.append(round(self.minPower + powerStep * (self.maxPower - self.minPower) / (self.stepsPower - 1)))
-        self.powerSetpoints.append(round(self.maxPower))
+        for powerStep in range(self.stepsPowerPasses - 1):
+            self.powerSetpoints.append(round(self.minPowerPasses + powerStep * (self.maxPowerPasses - self.minPowerPasses) / (self.stepsPowerPasses - 1)))
+        self.powerSetpoints.append(round(self.maxPowerPasses))
         
         #prepare the feed  setpoints list
         self.feedSetpoints = []
@@ -196,19 +200,13 @@ class laserTestPatternGenerator:
         self.fillupTestBoxes()
         self.endGcode()
 
-
-
-
-
-
-
-
-
         
 def printHelp():
     print()
     print()
-    print("laserTestPatternGenerator Cut/Engrave minPower maxPower stepsPower minFeed maxFeed stepsFeed")
+    print("laserTestPatternGenerator Cut/Engrave minPasses/minPower maxPasses/maxPower stepsPasses/stepsPower minFeed maxFeed stepsFeed [LineResolutionCutPower=10 / cutPower = 100]")
+    print("CUT syntax: laserTestPatternGenerator Cut minPasses maxPasses stepsPasses minFeed maxFeed stepsFeed [cutPower = 100]")
+    print("Engrave syntax: laserTestPatternGenerator Engrave minPower maxPower stepsPower minFeed maxFeed stepsFeed [LineResolutionCutPower = 10]")
     print()
     
 if __name__ == "__main__":
@@ -225,14 +223,14 @@ if __name__ == "__main__":
 
     try:
         mode = sys.argv[1]
-        minPower = int(sys.argv[2])
-        maxPower = int(sys.argv[3])
-        stepsPower = int(sys.argv[4])
+        minPowerPasses = int(sys.argv[2])
+        maxPowerPasses = int(sys.argv[3])
+        stepsPowerPasses = int(sys.argv[4])
         minFeed = int(sys.argv[5])
         maxFeed = int(sys.argv[6])
         stepsFeed = int(sys.argv[7])
         if len(sys.argv) == 9:
-            sampleLineResolution = int(sys.argv[8])
+            LineResolutionCutPower = int(sys.argv[8])
     except:
         print("Error in command line parameter!")
         printHelp()
@@ -240,9 +238,9 @@ if __name__ == "__main__":
         
     #instantiate laserTestPatternGenerator class
     if len(sys.argv) == 9:
-        gtpg = laserTestPatternGenerator(mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed, sampleLineResolution)
+        gtpg = laserTestPatternGenerator(mode,minPowerPasses, maxPowerPasses, stepsPowerPasses, minFeed, maxFeed, stepsFeed, LineResolutionCutPower)
     else:
-        gtpg = laserTestPatternGenerator(mode,minPower, maxPower, stepsPower, minFeed, maxFeed, stepsFeed)
+        gtpg = laserTestPatternGenerator(mode,minPowerPasses, maxPowerPasses, stepsPowerPasses, minFeed, maxFeed, stepsFeed)
     #gtpg.setSampleConfiguration(5,5,5,5,10) #optional command to change the default configuration of the sample
     gtpg.buildTestPattern()
 
