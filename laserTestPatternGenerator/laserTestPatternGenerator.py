@@ -29,12 +29,15 @@ class laserTestPatternGenerator:
         self.LineResolutionCutPower = sampleLineResoultion
 
         #config default sample size and resolution
-        self.sampleWidth = 10
-        self.sampleHorizontalSpace = 5
-        self.sampleHeight = 10
-        self.sampleVerticalSpace = 5
+        self.cutSampleWidth = 10
+        self.cutSampleHeight = 10
         
-
+        self.engraveSampleWidth = 5
+        self.engraveSampleHeight = 5
+        
+        self.sampleHorizontalSpace = 5
+        self.sampleVerticalSpace = 5
+      
         #config font sizes
         self.topHeaderFontWidth = 3
         self.topHeaderFontHeight = 6
@@ -42,6 +45,7 @@ class laserTestPatternGenerator:
         self.powerFeedHeaderFontHeight = 3
         self.powerFeedValuesFontWidth = 3
         self.powerFeedValuesFontHeight = 3
+
 
 
         #instanciate test writer
@@ -90,12 +94,12 @@ class laserTestPatternGenerator:
 
         return self.OK
 
-    def setSampleConfiguration(self,width,horizontalSpace,height,verticalSpace,LineResolutionCutPower):
-        self.sampleWidth = width
-        self.sampleHorizontalSpace = horizontalSpace
-        self.sampleHeight = height
-        self.sampleVerticalSpace = verticalSpace
-        self.LineResolutionCutPower = LineResolutionCutPower
+    # def setSampleConfiguration(self,width,horizontalSpace,height,verticalSpace,LineResolutionCutPower):
+    #     self.sampleWidth = width
+    #     self.sampleHorizontalSpace = horizontalSpace
+    #     self.sampleHeight = height
+    #     self.sampleVerticalSpace = verticalSpace
+    #     self.LineResolutionCutPower = LineResolutionCutPower
     
     def startGcode(self):
         #generate the GCODE file header
@@ -113,8 +117,12 @@ class laserTestPatternGenerator:
 
     def createHeaders(self):    
         #calculate test pattern dimentions
-        self.tpgWidth = self.stepsFeed*(self.sampleWidth + self.sampleHorizontalSpace)
-        self.tpgHeight = self.stepsPowerPasses * (self.sampleHeight + self.sampleVerticalSpace)
+        if self.mode == "cut":
+            self.tpgWidth = self.stepsFeed*(self.cutSampleWidth + self.sampleHorizontalSpace)
+            self.tpgHeight = self.stepsPowerPasses * (self.cutSampleHeight + self.sampleVerticalSpace)
+        else:
+            self.tpgWidth = self.stepsFeed*(self.engraveSampleWidth + self.sampleHorizontalSpace)
+            self.tpgHeight = self.stepsPowerPasses * (self.engraveSampleHeight + self.sampleVerticalSpace)
         
         #write the  top header
         self.gtw.fontConfig(self.topHeaderFontWidth, self.topHeaderFontHeight,space = self.topHeaderFontWidth / 2, feedRate = 1000, power = 150)
@@ -140,47 +148,68 @@ class laserTestPatternGenerator:
         self.gtw.fontConfig(self.powerFeedValuesFontWidth, self.powerFeedValuesFontHeight,self.powerFeedValuesFontWidth/2, feedRate = 1000, power = 150)
         
         #write the feed values
-        x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5 + self.sampleWidth
+        if self.mode == "cut":
+            x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5 + self.cutSampleWidth
+        else:
+            x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5 + self.engraveSampleWidth
         y = self.tpgHeight
         for feed in self.feedSetpoints:
             self.gtw.printGcode(x, y, self.gtw.ORIENTATION_VERTICAL, str(round(feed,2)))
-            x = x + self.sampleWidth + self.sampleHorizontalSpace
+            if self.mode == "cut":
+                x = x + self.cutSampleWidth + self.sampleHorizontalSpace
+            else:
+                x = x + self.engraveSampleWidth + self.sampleHorizontalSpace
 
         #write the power values
         x = self.powerFeedHeaderFontHeight * 1.5
-        y = self.tpgHeight - self.sampleHeight - self.sampleVerticalSpace
+        if self.mode == "cut":
+            y = self.tpgHeight - self.cutSampleHeight - self.sampleVerticalSpace
+        else:
+            y = self.tpgHeight - self.engraveSampleHeight - self.sampleVerticalSpace
         for power in self.powerSetpoints:
             self.gtw.printGcode(x, y, self.gtw.ORIENTATION_HORIZONTAL,str(round(power,2)))
-            y = y - self.sampleHeight - self.sampleVerticalSpace
+            if self.mode == "cut":
+                y = y - self.cutSampleHeight - self.sampleVerticalSpace
+            else:
+                y = y - self.engraveSampleHeight - self.sampleVerticalSpace
 
-    def generateTestBox(self, mode, x, y, feed, powerPasses):
+    def drawTestBox(self, mode, x, y, feed, powerPasses):
         print("G0 X"+str(x)+" Y"+str(y))
         if self.mode == "cut":
             print(";cut box x=" + str(x) + " y=" + str(y) + " feed="+str(feed) + " power= " + str(LineResolutionCutPower) + "passes= " + str(powerPasses))    
             for i in range(powerPasses):
-                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x)+" Y" + str(y + self.sampleHeight))
-                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x + self.sampleWidth) + " Y" + str(y + self.sampleHeight))
-                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x + self.sampleWidth) + " Y" + str(y))
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x)+" Y" + str(y + self.cutSampleHeight))
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x + self.cutSampleWidth) + " Y" + str(y + self.cutSampleHeight))
+                print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x + self.cutSampleWidth) + " Y" + str(y))
                 print("G1 S" + str(LineResolutionCutPower) + " F" + str(feed) + " X" + str(x) + " Y" + str(y))
 
         else:
             print(";engrave box x=" + str(x) + " y=" + str(y) + " feed="+str(feed) + " power=" + str(powerPasses))
             currentY = y
-            for verticalStep in range(self.sampleHeight * self.LineResolutionCutPower):
-                print("G1 S" + str(powerPasses) + " F" + str(feed) + " X" + str(x + self.sampleWidth)+" Y" + str(currentY))
+            for verticalStep in range(self.engraveSampleHeight * self.LineResolutionCutPower):
+                print("G1 S" + str(powerPasses) + " F" + str(feed) + " X" + str(x + self.engraveSampleWidth)+" Y" + str(currentY))
                 currentY = y + verticalStep / self.LineResolutionCutPower
                 print("G0 X" + str(x)+" Y" + str(currentY))
 
     def fillupTestBoxes(self):
         #fillup the test boxes
         x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5
-        y = self.tpgHeight - self.sampleHeight - self.sampleVerticalSpace
+        if self.mode == "cut":
+            y = self.tpgHeight - self.cutSampleHeight - self.sampleVerticalSpace
+        else:
+            y = self.tpgHeight - self.engraveSampleHeight - self.sampleVerticalSpace
         for power in self.powerSetpoints:    
             for feed in self.feedSetpoints:
-                self.generateTestBox(mode,x,y,feed,power)
-                x = x + self.sampleWidth + self.sampleHorizontalSpace
+                self.drawTestBox(mode,x,y,feed,power)
+                if self.mode == "cut":
+                    x = x + self.cutSampleWidth + self.sampleHorizontalSpace
+                else:
+                    x = x + self.engraveSampleWidth + self.sampleHorizontalSpace
             x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5
-            y = y - self.sampleHeight - self.sampleVerticalSpace
+            if self.mode == "cut":
+                y = y - self.cutSampleHeight - self.sampleVerticalSpace
+            else:
+                y = y - self.engraveSampleHeight - self.sampleVerticalSpace
 
     def buildTestPattern(self):
         error = self.validateParameters()

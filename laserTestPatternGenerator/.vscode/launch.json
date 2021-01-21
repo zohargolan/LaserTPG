@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "redirectOutput": true,
-            "args": ["cut","5", "20", "5", "3000", "6000", "5","100"],
+            "args": ["engrave","5", "20", "5", "3000", "6000", "5","10"],
             
 
         }
