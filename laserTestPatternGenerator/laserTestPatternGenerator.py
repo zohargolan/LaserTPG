@@ -29,9 +29,9 @@ class laserTestPatternGenerator:
         self.LineResolutionCutPower = sampleLineResoultion
 
         #config default sample size and resolution
-        self.sampleWidth = 5
+        self.sampleWidth = 10
         self.sampleHorizontalSpace = 5
-        self.sampleHeight = 5
+        self.sampleHeight = 10
         self.sampleVerticalSpace = 5
         
 
@@ -42,6 +42,10 @@ class laserTestPatternGenerator:
         self.powerFeedHeaderFontHeight = 3
         self.powerFeedValuesFontWidth = 3
         self.powerFeedValuesFontHeight = 3
+
+
+        #instanciate test writer
+        self.gtw = gcodeTextWriter()
         
         return
 
@@ -90,7 +94,7 @@ class laserTestPatternGenerator:
         self.sampleWidth = width
         self.sampleHorizontalSpace = horizontalSpace
         self.sampleHeight = height
-        self.sampleVerHorizontalSpace = verticalSpace
+        self.sampleVerticalSpace = verticalSpace
         self.LineResolutionCutPower = LineResolutionCutPower
     
     def startGcode(self):
@@ -108,43 +112,43 @@ class laserTestPatternGenerator:
         print("M5")
 
     def createHeaders(self):    
-        error = self.validateParameters()
-        if error != self.OK:
-            return error
-
         #calculate test pattern dimentions
         self.tpgWidth = self.stepsFeed*(self.sampleWidth + self.sampleHorizontalSpace)
-        self.tpgHeight = self.stepsPowerPasses*(self.sampleHeight + self.sampleVerticalSpace)
+        self.tpgHeight = self.stepsPowerPasses * (self.sampleHeight + self.sampleVerticalSpace)
         
         #write the  top header
         self.gtw.fontConfig(self.topHeaderFontWidth, self.topHeaderFontHeight,space = self.topHeaderFontWidth / 2, feedRate = 1000, power = 150)
-        self.gtw.printGcode(10,self.tpgHeight + self.powerFeedHeaderFontHeight + self.powerFeedValuesFontWidth * 4 * 1.5 + 15,self.gtw.ORIENTATION_HORIZONTAL,"GOLTEC LASER TEST PATTERN")
+        if(self.mode == "cut"):
+            self.gtw.printGcode(0,self.tpgHeight + self.powerFeedHeaderFontHeight * 1.5 + self.powerFeedValuesFontWidth * 4 * 1.5, self.gtw.ORIENTATION_HORIZONTAL,"CUTTING TEST")
+        else:
+            self.gtw.printGcode(0,self.tpgHeight + self.powerFeedHeaderFontHeight * 1.5 + self.powerFeedValuesFontWidth * 4 * 1.5, self.gtw.ORIENTATION_HORIZONTAL,"ENGRAVING TEST")
+
         
         #config font for power and feed headers
         self.gtw.fontConfig(self.powerFeedHeaderFontWidth, self.powerFeedHeaderFontHeight,self.powerFeedHeaderFontWidth/2,feedRate = 1000,power = 150)
         
         #write the feed speed header
-        self.gtw.printGcode(30,self.tpgHeight + self.powerFeedValuesFontWidth * 4 * 1.5 + 12, self.gtw.ORIENTATION_HORIZONTAL,"FEED [MM/MIN]")
+        self.gtw.printGcode(self.powerFeedHeaderFontHeight * 1.5 + self.powerFeedValuesFontWidth * 3 * 1.5,self.tpgHeight + self.powerFeedValuesFontWidth * 4 * 1.5, self.gtw.ORIENTATION_HORIZONTAL,"FEED [MM/MIN]")
 
         #write the power header
         if(self.mode == "cut"):
-            self.gtw.printGcode(self.powerFeedHeaderFontHeight + 10, 10, self.gtw.ORIENTATION_VERTICAL,"PASSES [P=" + str(self.LineResolutionCutPower)+"]")
+            self.gtw.printGcode(self.powerFeedHeaderFontHeight, 0, self.gtw.ORIENTATION_VERTICAL,"PASSES [P=" + str(self.LineResolutionCutPower)+"]")
         else:
-            self.gtw.printGcode(self.powerFeedHeaderFontHeight + 10, 10, self.gtw.ORIENTATION_VERTICAL,"POWER")
+            self.gtw.printGcode(self.powerFeedHeaderFontHeight, 0, self.gtw.ORIENTATION_VERTICAL,"POWER")
 
         #config font for power and feed values
         self.gtw.fontConfig(self.powerFeedValuesFontWidth, self.powerFeedValuesFontHeight,self.powerFeedValuesFontWidth/2, feedRate = 1000, power = 150)
         
         #write the feed values
-        x = self.powerFeedHeaderFontHeight + 6 * self.powerFeedValuesFontWidth * 1.5 + 4
-        y = self.tpgHeight + 10
+        x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5 + self.sampleWidth
+        y = self.tpgHeight
         for feed in self.feedSetpoints:
             self.gtw.printGcode(x, y, self.gtw.ORIENTATION_VERTICAL, str(round(feed,2)))
             x = x + self.sampleWidth + self.sampleHorizontalSpace
 
         #write the power values
-        x = self.powerFeedHeaderFontHeight + 12
-        y = self.tpgHeight
+        x = self.powerFeedHeaderFontHeight * 1.5
+        y = self.tpgHeight - self.sampleHeight - self.sampleVerticalSpace
         for power in self.powerSetpoints:
             self.gtw.printGcode(x, y, self.gtw.ORIENTATION_HORIZONTAL,str(round(power,2)))
             y = y - self.sampleHeight - self.sampleVerticalSpace
@@ -169,18 +173,19 @@ class laserTestPatternGenerator:
 
     def fillupTestBoxes(self):
         #fillup the test boxes
-        x = self.powerFeedHeaderFontHeight + 2 + 5 * self.powerFeedValuesFontWidth * 1.5 + 2
-        y = self.tpgHeight
+        x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5
+        y = self.tpgHeight - self.sampleHeight - self.sampleVerticalSpace
         for power in self.powerSetpoints:    
             for feed in self.feedSetpoints:
                 self.generateTestBox(mode,x,y,feed,power)
                 x = x + self.sampleWidth + self.sampleHorizontalSpace
-            x = self.powerFeedHeaderFontHeight + 2 + 5 * self.powerFeedValuesFontWidth * 1.5 + 2
+            x = self.powerFeedHeaderFontHeight * 1.5 + 3 * self.powerFeedValuesFontWidth * 1.5
             y = y - self.sampleHeight - self.sampleVerticalSpace
 
     def buildTestPattern(self):
-        #instanciate test writer
-        self.gtw = gcodeTextWriter()
+        error = self.validateParameters()
+        if error != self.OK:
+            return error
 
         #prepare the power setpoints list
         self.powerSetpoints = []
@@ -242,6 +247,8 @@ if __name__ == "__main__":
     else:
         gtpg = laserTestPatternGenerator(mode,minPowerPasses, maxPowerPasses, stepsPowerPasses, minFeed, maxFeed, stepsFeed)
     #gtpg.setSampleConfiguration(5,5,5,5,10) #optional command to change the default configuration of the sample
-    gtpg.buildTestPattern()
+    error = gtpg.buildTestPattern()
+    if error != gtpg.OK:
+        printHelp()
 
 
