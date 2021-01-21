@@ -7,11 +7,11 @@ class laserTestPatternGenerator:
     #Error code definition
     OK                                      = 0
     ERROR_MODE                              = 1
-    ERROR_LINE_RESOLUION_CUT_POWER                    = 2
-    ERROR_MIN_POWER                         = 3
-    ERROR_MAX_POWER                         = 4
-    ERROR_STEPS_POWER                       = 5
-    ERROR_RANGE_POWER                       = 6
+    ERROR_LINE_RESOLUION_CUT_POWER_PASSES                    = 2
+    ERROR_MIN_POWER_PASSES                         = 3
+    ERROR_MAX_POWER_PASSES                         = 4
+    ERROR_STEPS_POWER_PASSES                       = 5
+    ERROR_RANGE_POWER_PASSES                       = 6
     ERROR_MIN_FEED                          = 7
     ERROR_MAX_FEED                          = 8
     ERROR_RANGE_FEED                        = 9
@@ -61,23 +61,36 @@ class laserTestPatternGenerator:
         #check lineResolution
         if self.mode == "cut":
             if self.LineResolutionCutPower < 0 or self.LineResolutionCutPower > 255:
-                return self.ERROR_LINE_RESOLUION_CUT_POWER
+                return self.ERROR_LINE_RESOLUION_CUT_POWER_PASSES
         else:
             if self.LineResolutionCutPower < 0 or self.LineResolutionCutPower > 40:
-                return self.ERROR_LINE_RESOLUION_CUT_POWER
+                return self.ERROR_LINE_RESOLUION_CUT_POWER_PASSES
 
         #check power parameters
-        if self.minPowerPasses < 0 or self.minPowerPasses > 255:
-            return self.ERROR_MIN_POWER
+        if self.mode == "cut":
+            if self.minPowerPasses < 0 or self.minPowerPasses > 255:
+                return self.ERROR_MIN_POWER_PASSES
             
-        if self.maxPowerPasses < 0 or self.maxPowerPasses > 255:
-            return self.ERROR_MAX_POWER
-        
-        if self.stepsPowerPasses < 0 or self.stepsPowerPasses > 10:
-            return self.ERROR_STEPS_POWER
-        
-        if self.maxPowerPasses < self.minPowerPasses:
-            return self.ERROR_RANGE_POWER
+            if self.maxPowerPasses < 0 or self.maxPowerPasses > 255:
+                return self.ERROR_MAX_POWER_PASSES
+            
+            if self.stepsPowerPasses < 0 or self.stepsPowerPasses > 10:
+                return self.ERROR_STEPS_POWER_PASSES
+            
+            if self.maxPowerPasses < self.minPowerPasses:
+                return self.ERROR_RANGE_POWER_PASSES
+        else:
+            if self.minPowerPasses < 0 or self.minPowerPasses > 50:
+                return self.ERROR_MIN_POWER_PASSES
+            
+            if self.maxPowerPasses < 0 or self.maxPowerPasses > 50:
+                return self.ERROR_MAX_POWER_PASSES
+            
+            if self.stepsPowerPasses < 0 or self.stepsPowerPasses > 10:
+                return self.ERROR_STEPS_POWER_PASSES
+            
+            if self.maxPowerPasses < self.minPowerPasses:
+                return self.ERROR_RANGE_POWER_PASSES
 
         #check feed parameters
         if self.minFeed < 0 or self.minFeed > 30000:
@@ -239,9 +252,25 @@ def printHelp():
     print()
     print()
     print("laserTestPatternGenerator Cut/Engrave minPasses/minPower maxPasses/maxPower stepsPasses/stepsPower minFeed maxFeed stepsFeed [LineResolutionCutPower=10 / cutPower = 100]")
-    print("CUT syntax: laserTestPatternGenerator Cut minPasses maxPasses stepsPasses minFeed maxFeed stepsFeed [cutPower = 100]")
-    print("Engrave syntax: laserTestPatternGenerator Engrave minPower maxPower stepsPower minFeed maxFeed stepsFeed [LineResolutionCutPower = 10]")
     print()
+    print("CUT syntax: laserTestPatternGenerator Cut minPasses maxPasses stepsPasses minFeed maxFeed stepsFeed [cutPower = 100]")
+    print("            0 <= minPasses <= 50")
+    print("            0 <= maxPasses <= 50")
+    print("            0 <= stepsPasses <= 10")
+    print("            0 <= minFeed <= 30000")
+    print("            0 <= maxFeed <= 30000")
+    print("            0 <= stepsFeed <= 10")
+    print("            0 <= cutPower <= 255 [default = 100]")
+    print()    
+    print("Engrave syntax: laserTestPatternGenerator Engrave minPower maxPower stepsPower minFeed maxFeed stepsFeed [LineResolution = 10]")
+    print("            0 <= minPower <= 255")
+    print("            0 <= maxPasses <= 255")
+    print("            0 <= stepsPasses <= 10")
+    print("            0 <= minFeed <= 30000")
+    print("            0 <= maxFeed <= 30000")
+    print("            0 <= stepsFeed <= 10")
+    print("            0 <= lineResolution <= 40 [default = 10]")
+    print()    
     
 if __name__ == "__main__":
     #check command line variables
