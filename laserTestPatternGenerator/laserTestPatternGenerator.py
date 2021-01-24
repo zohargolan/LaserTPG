@@ -68,10 +68,10 @@ class laserTestPatternGenerator:
 
         #check power parameters
         if self.mode == "cut":
-            if self.minPowerPasses < 0 or self.minPowerPasses > 255:
+            if self.minPowerPasses < 0 or self.minPowerPasses > 50:
                 return self.ERROR_MIN_POWER_PASSES
             
-            if self.maxPowerPasses < 0 or self.maxPowerPasses > 255:
+            if self.maxPowerPasses < 0 or self.maxPowerPasses > 50:
                 return self.ERROR_MAX_POWER_PASSES
             
             if self.stepsPowerPasses < 0 or self.stepsPowerPasses > 10:
@@ -80,10 +80,10 @@ class laserTestPatternGenerator:
             if self.maxPowerPasses < self.minPowerPasses:
                 return self.ERROR_RANGE_POWER_PASSES
         else:
-            if self.minPowerPasses < 0 or self.minPowerPasses > 50:
+            if self.minPowerPasses < 0 or self.minPowerPasses > 255:
                 return self.ERROR_MIN_POWER_PASSES
             
-            if self.maxPowerPasses < 0 or self.maxPowerPasses > 50:
+            if self.maxPowerPasses < 0 or self.maxPowerPasses > 255:
                 return self.ERROR_MAX_POWER_PASSES
             
             if self.stepsPowerPasses < 0 or self.stepsPowerPasses > 10:
@@ -246,6 +246,8 @@ class laserTestPatternGenerator:
         self.createHeaders()
         self.fillupTestBoxes()
         self.endGcode()
+
+        return self.OK
 
         
 def printHelp():
